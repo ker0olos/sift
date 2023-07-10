@@ -1,6 +1,6 @@
 {
   "imports": {
     "$std/": "https://deno.land/std@0.193.0/",
-    "media_types": "https://deno.land/x/media_types@v2.11.1/mod.ts"
+    "media_types/": "https://deno.land/x/media_types@v2.11.1/"
   }
 }

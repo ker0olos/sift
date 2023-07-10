@@ -4,21 +4,20 @@
 /// <reference lib="dom.asynciterable" />
 /// <reference lib="deno.ns" />
 
-import { Status, STATUS_TEXT } from '$std/http/http_status.ts';
+import {
+  Status,
+  STATUS_TEXT,
+} from 'https://deno.land/std@0.193.0/http/http_status.ts';
 
-import { ConnInfo, serve as stdServe, ServeInit } from '$std/http/server.ts';
-
-import { contentType as getContentType, lookup } from 'media_types';
-
-export { Status, STATUS_TEXT } from '$std/http/http_status.ts';
-
-export type { ConnInfo } from '$std/http/server.ts';
+import {
+  contentType as getContentType,
+  lookup,
+} from 'https://deno.land/x/media_types@v2.11.1/mod.ts';
 
 export type PathParams = Record<string, string | undefined> | undefined;
 
 export type Handler = (
   request: Request,
-  connInfo: ConnInfo,
   params: PathParams,
 ) => Promise<Response> | Response;
 
@@ -45,16 +44,15 @@ let routes: Routes = { 404: defaultNotFoundPage };
  */
 export function serve(
   userRoutes: Routes,
-  options: ServeInit = { port: 8000 },
+  options: Deno.ServeOptions = { port: 8000 },
 ): void {
   routes = { ...routes, ...userRoutes };
 
-  stdServe((req, connInfo) => handleRequest(req, connInfo, routes), options);
+  Deno.serve(options, (req) => handleRequest(req, routes));
 }
 
 async function handleRequest(
   request: Request,
-  connInfo: ConnInfo,
   routes: Routes,
 ): Promise<Response> {
   const { search, pathname } = new URL(request.url);
@@ -71,7 +69,7 @@ async function handleRequest(
         const params = pattern.exec({ pathname })?.pathname.groups;
 
         try {
-          response = await routes[route](request, connInfo, params);
+          response = await routes[route](request, params);
         } catch (error) {
           if (error.name === 'NotFound') {
             break;
@@ -88,7 +86,7 @@ async function handleRequest(
 
     // return not found page if no handler is found.
     if (response === undefined) {
-      response = await routes['404'](request, connInfo, {});
+      response = await routes['404'](request, {});
     }
 
     // method path+params timeTaken status
@@ -149,7 +147,6 @@ export function serveStatic(
 ): Handler {
   return async (
     request: Request,
-    connInfo: ConnInfo,
     params: PathParams,
   ): Promise<Response> => {
     let filePath = relativePath;
@@ -183,7 +180,7 @@ export function serveStatic(
     }
 
     if (response.status === 404) {
-      return routes[404](request, connInfo, {});
+      return routes[404](request, {});
     }
 
     return response;

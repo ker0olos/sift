@@ -10,15 +10,13 @@
         "no-eval",
         "no-throw-literal",
         "no-sparse-arrays",
-        "explicit-function-return-type",
-        "no-external-import"
+        "explicit-function-return-type"
       ]
     }
   },
   "lock": false,
-  "importMap": "./import_map.json",
   "tasks": {
-    "udd": "deno run -A https://deno.land/x/udd/main.ts import_map.json"
+    "udd": "deno run -A https://deno.land/x/udd/main.ts mod.ts"
   },
   "fmt": {
     "useTabs": false,

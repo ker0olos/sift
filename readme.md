@@ -26,17 +26,17 @@ when the requested path matches the provided pattern, the corresponding handler
 is invoked.
 
 ```js
-import { serve } from "https://deno.land/x/sift@0.6.0/mod.ts";
+import { serve } from 'https://deno.land/x/sift@0.6.0/mod.ts';
 
 serve({
-  "/": () => new Response("hello world"),
-  "/blog/:slug": (request, connInfo, params) => {
+  '/': () => new Response('hello world'),
+  '/blog/:slug': (request, connInfo, params) => {
     const post = `Hello, you visited ${params.slug}!`;
     return new Response(post);
   },
   // The route handler of 404 will be invoked when a route handler
   // for the requested path is not found.
-  404: () => new Response("not found"),
+  404: () => new Response('not found'),
 });
 ```
 
@@ -54,16 +54,16 @@ If you're serving a directory, it is required that the path string end with
 requested resource.
 
 ```js
-import { serve, serveStatic } from "https://deno.land/x/sift@0.6.0/mod.ts";
+import { serve, serveStatic } from 'https://deno.land/x/sift@0.6.0/mod.ts';
 
 serve({
   // You can serve a single file.
-  "/": serveStatic("public/index.html", { baseUrl: import.meta.url }),
+  '/': serveStatic('public/index.html', { baseUrl: import.meta.url }),
   // Or a directory of files.
-  "/:filename+": serveStatic("public", { baseUrl: import.meta.url }),
+  '/:filename+': serveStatic('public', { baseUrl: import.meta.url }),
   // You can modify the fetched response before returning to the request
   // by using the intervene option.
-  "/style.css": serveStatic("style.css", {
+  '/style.css': serveStatic('style.css', {
     baseUrl: import.meta.url,
     // The intervene function is called after the resource is
     // fetched from the source URL. The original request and the
@@ -83,11 +83,11 @@ Converts an object literal to a JSON string and creates a `Response` instance
 with `application/json` as the `content-type`.
 
 ```js
-import { json, serve } from "https://deno.land/x/sift@0.6.0/mod.ts";
+import { json, serve } from 'https://deno.land/x/sift@0.6.0/mod.ts';
 
 serve({
-  "/": () => json({ message: "hello world" }),
-  "api/create": () => json({ message: "created" }, { status: 201 }),
+  '/': () => json({ message: 'hello world' }),
+  'api/create': () => json({ message: 'created' }, { status: 201 }),
 });
 ```
 
@@ -102,7 +102,7 @@ imported.
 
 ```jsx
 /** @jsx h */
-import { h, jsx, serve } from "https://deno.land/x/sift@0.6.0/mod.ts";
+import { h, jsx, serve } from 'https://deno.land/x/sift@0.6.0/mod.ts';
 
 const App = () => (
   <div>
@@ -117,7 +117,7 @@ const NotFound = () => (
 );
 
 serve({
-  "/": () => jsx(<App />),
+  '/': () => jsx(<App />),
   404: () => jsx(<NotFound />, { status: 404 }),
 });
 ```
