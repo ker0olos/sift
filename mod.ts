@@ -4,37 +4,18 @@
 /// <reference lib="dom.asynciterable" />
 /// <reference lib="deno.ns" />
 
-import {
-  Status,
-  STATUS_TEXT,
-} from "https://deno.land/std@0.154.0/http/http_status.ts";
+import { Status, STATUS_TEXT } from '$std/http/http_status.ts';
 
-import {
-  ConnInfo,
-  serve as stdServe,
-  ServeInit,
-} from "https://deno.land/std@0.154.0/http/server.ts";
+import { ConnInfo, serve as stdServe, ServeInit } from '$std/http/server.ts';
 
-import { inMemoryCache } from "https://deno.land/x/httpcache@0.1.2/in_memory.ts";
+import { contentType as getContentType, lookup } from 'media_types';
 
-import {
-  contentType as getContentType,
-  lookup,
-} from "https://deno.land/x/media_types@v2.11.1/mod.ts";
-import { renderToString } from "https://esm.sh/preact-render-to-string@5.2.4?target=deno";
-import { type VNode } from "https://esm.sh/preact@10.10.6?target=deno";
-export * from "https://esm.sh/preact@10.10.6?target=deno";
+export { Status, STATUS_TEXT } from '$std/http/http_status.ts';
 
-export {
-  Status,
-  STATUS_TEXT,
-} from "https://deno.land/std@0.154.0/http/http_status.ts";
+export type { ConnInfo } from '$std/http/server.ts';
 
-export type PathParams = Record<string, string> | undefined;
+export type PathParams = Record<string, string | undefined> | undefined;
 
-export type { ConnInfo } from "https://deno.land/std@0.154.0/http/server.ts";
-
-/** Note: we should aim to keep it the same as std handler. */
 export type Handler = (
   request: Request,
   connInfo: ConnInfo,
@@ -44,8 +25,6 @@ export type Handler = (
 export interface Routes {
   [path: string]: Handler;
 }
-
-const globalCache = inMemoryCache(20);
 
 let routes: Routes = { 404: defaultNotFoundPage };
 
@@ -69,6 +48,7 @@ export function serve(
   options: ServeInit = { port: 8000 },
 ): void {
   routes = { ...routes, ...userRoutes };
+
   stdServe((req, connInfo) => handleRequest(req, connInfo, routes), options);
 }
 
@@ -81,64 +61,61 @@ async function handleRequest(
 
   try {
     const startTime = Date.now();
-    let response = await globalCache.match(request);
-    if (typeof response === "undefined") {
-      for (const route of Object.keys(routes)) {
-        // @ts-ignore URLPattern is still not available in dom lib.
-        const pattern = new URLPattern({ pathname: route });
-        if (pattern.test({ pathname })) {
-          const params = pattern.exec({ pathname })?.pathname.groups;
-          try {
-            response = await routes[route](request, connInfo, params);
-          } catch (error) {
-            if (error.name == "NotFound") {
-              break;
-            }
 
-            console.error("Error serving request:", error);
-            response = json({ error: error.message }, { status: 500 });
+    let response: Response | undefined = undefined;
+
+    for (const route of Object.keys(routes)) {
+      const pattern = new URLPattern({ pathname: route });
+
+      if (pattern.test({ pathname })) {
+        const params = pattern.exec({ pathname })?.pathname.groups;
+
+        try {
+          response = await routes[route](request, connInfo, params);
+        } catch (error) {
+          if (error.name === 'NotFound') {
+            break;
           }
-          if (!(response instanceof Response)) {
-            response = jsx(response);
-          }
-          break;
+
+          console.error('Error serving request:', error);
+
+          response = json({ error: error.message }, { status: 500 });
         }
+
+        break;
       }
-    } else {
-      response.headers.set("x-function-cache-hit", "true");
     }
 
     // return not found page if no handler is found.
     if (response === undefined) {
-      response = await routes["404"](request, connInfo, {});
+      response = await routes['404'](request, connInfo, {});
     }
 
     // method path+params timeTaken status
     console.log(
       `${request.method} ${pathname + search} ${
-        response.headers.has("x-function-cache-hit")
+        response.headers.has('x-function-cache-hit')
           ? String.fromCodePoint(0x26a1)
-          : ""
+          : ''
       }${Date.now() - startTime}ms ${response.status}`,
     );
 
     return response;
   } catch (error) {
-    console.error("Error serving request:", error);
+    console.error('Error serving request:', error);
+
     return json({ error: error.message }, { status: 500 });
   }
 }
 
-function defaultNotFoundPage() {
-  return new Response("<h1 align=center>page not found</h1>", {
-    status: 404,
-    headers: { "Content-Type": "text/html; charset=utf-8" },
-  });
+function defaultNotFoundPage(): Response {
+  return new Response(undefined, { status: 404, statusText: 'Not Found' });
 }
 
 export interface ServeStaticOptions {
   /** The base to be used for the construction of absolute URL. */
   baseUrl: string;
+
   /** A function to modify the response before it's served to the request.
    * For example, set appropriate content-type header.
    *
@@ -147,10 +124,8 @@ export interface ServeStaticOptions {
     request: Request,
     response: Response,
   ) => Promise<Response> | Response;
-  /** Disable caching of the responses.
-   *
-   * @default true */
-  cache?: boolean;
+
+  cacheControl?: boolean;
 }
 
 /** Serve static files hosted on the internet or relative to your source code.
@@ -170,52 +145,47 @@ export interface ServeStaticOptions {
  */
 export function serveStatic(
   relativePath: string,
-  { baseUrl, intervene, cache = true }: ServeStaticOptions,
+  { baseUrl, intervene, cacheControl = true }: ServeStaticOptions,
 ): Handler {
   return async (
     request: Request,
     connInfo: ConnInfo,
     params: PathParams,
   ): Promise<Response> => {
-    // Construct URL for the request resource.
-    const filename = params?.filename;
     let filePath = relativePath;
+
+    const filename = params?.filename;
+
     if (filename) {
-      filePath = relativePath.endsWith("/")
+      filePath = relativePath.endsWith('/')
         ? relativePath + filename
-        : relativePath + "/" + filename;
+        : relativePath + '/' + filename;
     }
+
     const fileUrl = new URL(filePath, baseUrl);
 
-    let response: Response | undefined;
-    if (cache) {
-      response = await globalCache.match(request);
+    const body = await Deno.readFile(fileUrl);
+
+    let response = new Response(body);
+
+    const contentType = getContentType(String(lookup(filePath)));
+
+    if (contentType) {
+      response.headers.set('content-type', contentType);
     }
 
-    if (typeof response === "undefined") {
-      const body = await Deno.readFile(fileUrl);
-      response = new Response(body);
-      const contentType = getContentType(String(lookup(filePath)));
-      if (contentType) {
-        response.headers.set("content-type", contentType);
-      }
-      if (typeof intervene === "function") {
-        response = await intervene(request, response);
-      }
-
-      if (cache) {
-        // We don't want to cache if the resource size if greater than 10MB.
-        // The size is arbitrary choice.
-        const TEN_MB = 1024 * 1024 * 10;
-        if (Number(response.headers.get("content-length")) < TEN_MB) {
-          await globalCache.put(request, response);
-        }
-      }
+    if (cacheControl) {
+      response.headers.set('cache-control', 'max-age=86400');
     }
 
-    if (response.status == 404) {
+    if (typeof intervene === 'function') {
+      response = await intervene(request, response);
+    }
+
+    if (response.status === 404) {
       return routes[404](request, connInfo, {});
     }
+
     return response;
   };
 }
@@ -240,45 +210,12 @@ export function json(
     ? init.headers
     : new Headers(init?.headers);
 
-  if (!headers.has("Content-Type")) {
-    headers.set("Content-Type", "application/json; charset=utf-8");
+  if (!headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json; charset=utf-8');
   }
   const statusText = init?.statusText ??
     STATUS_TEXT[(init?.status as Status) ?? Status.OK];
-  return new Response(JSON.stringify(jsobj) + "\n", {
-    statusText,
-    status: init?.status ?? Status.OK,
-    headers,
-  });
-}
-
-/** Renders JSX components to HTML and returns a Response with `text/html`
- * as the `content-type.`
- *
- * @example
- * ```jsx
- * import { serve, jsx, h } from "https://deno.land/x/sift/mod.ts"
- *
- * const Greet = ({name}) => <div>Hello, {name}</div>;
- *
- * serve({
- *  "/": () => jsx(<html><Greet name="Sift" /></html),
- * })
- * ```
- *
- * Make sure your file extension is either `.tsx` or `.jsx` and you've `h` imported
- * when using this function. */
-export function jsx(jsx: VNode, init?: ResponseInit): Response {
-  const headers = init?.headers instanceof Headers
-    ? init.headers
-    : new Headers(init?.headers);
-
-  if (!headers.has("Content-Type")) {
-    headers.set("Content-Type", "text/html; charset=utf-8");
-  }
-  const statusText = init?.statusText ??
-    STATUS_TEXT[(init?.status as Status) ?? Status.OK];
-  return new Response(renderToString(jsx), {
+  return new Response(JSON.stringify(jsobj) + '\n', {
     statusText,
     status: init?.status ?? Status.OK,
     headers,
@@ -321,10 +258,13 @@ export async function validateRequest(
   // Validate the params if defined in the terms.
   if (
     terms[request.method]?.params &&
+    // deno-lint-ignore no-non-null-assertion
     terms[request.method].params!.length > 0
   ) {
-    const { searchParams } = new URL(request.url);
     const requestParams = [];
+
+    const { searchParams } = new URL(request.url);
+
     for (const param of searchParams.keys()) {
       requestParams.push(param);
     }
@@ -369,7 +309,9 @@ export async function validateRequest(
   // Validate the body of the request if defined in the terms.
   if (terms[request.method].body && terms[request.method].body!.length > 0) {
     const requestBody = await request.json();
+
     const bodyKeys = Object.keys(requestBody);
+
     for (const key of terms[request.method].body!) {
       if (!bodyKeys.includes(key)) {
         return {

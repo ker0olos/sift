@@ -1,0 +1,28 @@
+{
+  "lint": {
+    "rules": {
+      "tags": ["recommended"],
+      "include": [
+        "prefer-ascii",
+        "camelcase",
+        "eqeqeq",
+        "no-const-assign",
+        "no-eval",
+        "no-throw-literal",
+        "no-sparse-arrays",
+        "explicit-function-return-type",
+        "no-external-import"
+      ]
+    }
+  },
+  "lock": false,
+  "importMap": "./import_map.json",
+  "tasks": {
+    "udd": "deno run -A https://deno.land/x/udd/main.ts import_map.json"
+  },
+  "fmt": {
+    "useTabs": false,
+    "singleQuote": true,
+    "indentWidth": 2
+  }
+}

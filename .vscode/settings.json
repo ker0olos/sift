@@ -1,4 +1,11 @@
 {
+  "deno.lint": true,
   "deno.enable": true,
-  "deno.unstable": true
+  "deno.unstable": false,
+  "deno.config": "deno.json",
+  "editor.tabSize": 2,
+  "editor.formatOnSave": true,
+  "[typescript]": {
+    "editor.defaultFormatter": "denoland.vscode-deno"
+  },
 }
