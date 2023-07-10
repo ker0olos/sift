@@ -16,7 +16,7 @@
   },
   "lock": false,
   "tasks": {
-    "udd": "deno run -A https://deno.land/x/udd/main.ts mod.ts"
+    "udd": "deno run -A https://deno.land/x/udd/main.ts mod.ts test.ts"
   },
   "fmt": {
     "useTabs": false,

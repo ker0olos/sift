@@ -1,6 +1,6 @@
-import { assertEquals } from '$std/testing/asserts.ts';
+import { assertEquals } from 'https://deno.land/std@0.193.0/testing/asserts.ts';
 
-import { Status } from '$std/http/http_status.ts';
+import { Status } from 'https://deno.land/std@0.193.0/http/http_status.ts';
 
 import { json, validateRequest } from './mod.ts';
 

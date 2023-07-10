@@ -4,6 +4,8 @@
 /// <reference lib="dom.asynciterable" />
 /// <reference lib="deno.ns" />
 
+import { extname } from 'https://deno.land/std@0.193.0/path/mod.ts';
+
 import {
   Status,
   STATUS_TEXT,
@@ -11,8 +13,7 @@ import {
 
 import {
   contentType as getContentType,
-  lookup,
-} from 'https://deno.land/x/media_types@v2.11.1/mod.ts';
+} from 'https://deno.land/std@0.193.0/media_types/mod.ts';
 
 export type PathParams = Record<string, string | undefined> | undefined;
 
@@ -165,7 +166,7 @@ export function serveStatic(
 
     let response = new Response(body);
 
-    const contentType = getContentType(String(lookup(filePath)));
+    const contentType = getContentType(extname(filePath));
 
     if (contentType) {
       response.headers.set('content-type', contentType);
