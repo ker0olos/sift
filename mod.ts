@@ -46,10 +46,10 @@ let routes: Routes = { 404: defaultNotFoundPage };
 export function serve(
   userRoutes: Routes,
   options: Deno.ServeOptions = { port: 8000 },
-): void {
+): Deno.HttpServer {
   routes = { ...routes, ...userRoutes };
 
-  Deno.serve(options, (req) => handleRequest(req, routes));
+  return Deno.serve(options, (req) => handleRequest(req, routes));
 }
 
 async function handleRequest(
